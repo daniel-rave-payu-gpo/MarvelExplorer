@@ -1,0 +1,404 @@
+openapi: 3.0.0
+info:
+  title: Marvel Explorer API
+  description: API for exploring Marvel movie data, actors, and characters
+  version: 1.0.0
+  contact:
+    name: Marvel Explorer Team
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.marvel-explorer.com
+    description: Production server
+
+paths:
+  # Core Endpoints (Required)
+  /v1/marvel/moviesPerActor:
+    get:
+      operationId: getMoviesPerActor
+      tags: [Marvel Core]
+      summary: Get movies per actor
+      description: Returns a list of Marvel movies each actor has appeared in
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoviesPerActorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/marvel/actorsWithMultipleCharacters:
+    get:
+      operationId: getActorsWithMultipleCharacters
+      tags: [Marvel Core]
+      summary: Get actors with multiple characters
+      description: Returns actors who have played more than one Marvel character
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActorsWithMultipleCharactersResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/marvel/charactersWithMultipleActors:
+    get:
+      operationId: getCharactersWithMultipleActors
+      tags: [Marvel Core]
+      summary: Get characters with multiple actors
+      description: Returns characters that were played by more than one actor
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CharactersWithMultipleActorsResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Data Management
+  /v1/tmdb-extraction/import:
+    post:
+      operationId: importTMDBData
+      tags: [Data Management]
+      summary: Import all TMDB data (clears existing data first)
+      description: Clears all existing data and imports fresh TMDB data
+      responses:
+        '200':
+          description: Data import successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TMDBExtractionOperationResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/tmdb-extraction/extraction-data:
+    get:
+      operationId: getTMDBExtractionDataConfig
+      tags: [Data Management]
+      summary: Get TMDB extraction configuration
+      description: Returns the configuration used for TMDB data extraction (movies and actors)
+      responses:
+        '200':
+          description: Configuration returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TMDBExtractionConfigResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v1/tmdb-extraction/stats:
+    get:
+      operationId: getTMDBStats
+      tags: [Data Management]
+      summary: Get aggregated statistics
+      description: Returns aggregated statistics about movies, actors, and characters
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # System Health
+  /v1/system/health:
+    get:
+      operationId: getHealth
+      tags: [System]
+      summary: Get system health
+      description: Returns the health status of the system
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  schemas:
+    # Core Response Schemas
+    MoviesPerActorResponse:
+      type: object
+      description: Response for movies per actor endpoint
+      additionalProperties:
+        type: array
+        items:
+          type: string
+      example:
+        "Robert Downey Jr.": ["Iron Man", "Iron Man 2", "The Avengers"]
+        "Chris Evans": ["Captain America: The First Avenger", "The Avengers"]
+
+    ActorsWithMultipleCharactersResponse:
+      type: object
+      description: Response for actors with multiple characters endpoint
+      additionalProperties:
+        type: array
+        items:
+          $ref: '#/components/schemas/CharacterRole'
+      example:
+        "Actor Name": [
+          {"movieName": "Movie 1", "characterName": "Character A"},
+          {"movieName": "Movie 2", "characterName": "Character B"}
+        ]
+
+    CharactersWithMultipleActorsResponse:
+      type: object
+      description: Response for characters with multiple actors endpoint
+      additionalProperties:
+        type: array
+        items:
+          $ref: '#/components/schemas/ActorRole'
+      example:
+        "Character Name": [
+          {"movieName": "Movie 1", "actorName": "Actor A"},
+          {"movieName": "Movie 2", "actorName": "Actor B"}
+        ]
+
+    # Supporting Schemas
+    CharacterRole:
+      type: object
+      properties:
+        movieName:
+          type: string
+          description: Movie title
+        characterName:
+          type: string
+          description: Character name
+      required:
+        - movieName
+        - characterName
+
+    ActorRole:
+      type: object
+      properties:
+        movieName:
+          type: string
+          description: Movie title
+        actorName:
+          type: string
+          description: Actor name
+      required:
+        - movieName
+        - actorName
+
+    StatsResponse:
+      type: object
+      properties:
+        movies:
+          $ref: '#/components/schemas/MovieStats'
+        actors:
+          $ref: '#/components/schemas/ActorStats'
+        characters:
+          $ref: '#/components/schemas/CharacterStats'
+
+    MovieStats:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of movies
+        by_year:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Number of movies by year
+
+    ActorStats:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of actors
+        with_multiple_characters:
+          type: integer
+          description: Number of actors with multiple characters
+
+    CharacterStats:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of characters
+        with_multiple_actors:
+          type: integer
+          description: Number of characters with multiple actors
+
+    TMDBExtractionOperationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+          description: Operation result message
+        data:
+          $ref: '#/components/schemas/TMDBExtractionData'
+      required:
+        - success
+        - message
+
+    TMDBExtractionData:
+      type: object
+      properties:
+        moviesProcessed:
+          type: integer
+        actorsProcessed:
+          type: integer
+        charactersProcessed:
+          type: integer
+        movies:
+          type: array
+          items:
+            $ref: '#/components/schemas/TMDBMovieSummary'
+        actors:
+          type: array
+          items:
+            $ref: '#/components/schemas/TMDBActorSummary'
+        characters:
+          type: array
+          items:
+            $ref: '#/components/schemas/TMDBCharacterSummary'
+
+    TMDBMovieSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        tmdbId:
+          type: integer
+      required:
+        - id
+        - title
+        - tmdbId
+
+    TMDBActorSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        tmdbId:
+          type: integer
+      required:
+        - id
+        - name
+        - tmdbId
+
+    TMDBCharacterSummary:
+      type: object
+      properties:
+        name:
+          type: string
+        movieId:
+          type: integer
+        actorId:
+          type: integer
+      required:
+        - name
+        - movieId
+        - actorId
+
+    TMDBExtractionConfigResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/TMDBExtractionConfig'
+      required:
+        - success
+
+    TMDBExtractionConfig:
+      type: object
+      properties:
+        movies:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Movie titles mapped to TMDB IDs
+        actors:
+          type: array
+          items:
+            type: string
+          description: List of actor names
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [OPERATIONAL, DEGRADED, NON_OPERATIONAL]
+          description: System status
+        description:
+          type: string
+          description: Human-readable status description
+      required:
+        - status
+        - description
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: Error message
+              code:
+                type: string
+                description: Error code
+            required:
+              - message
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: Error message
+              code:
+                type: string
+                description: Error code
+            required:
+              - message
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+      required:
+        - message
+
+tags:
+  - name: Marvel Core
+    description: Core Marvel API endpoints as specified in requirements
+  - name: Data Management
+    description: Data management operations for TMDB data import and configuration
+  - name: System
+    description: System health and status endpoints

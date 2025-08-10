@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Movie {
+  id          Int      @id @default(autoincrement())
+  tmdbId      Int      @unique @map("tmdb_id")
+  title       String
+  releaseDate DateTime? @map("release_date")
+  overview    String?
+  posterPath  String?  @map("poster_path")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  characters Character[]
+
+  @@map("movies")
+  @@index([releaseDate])
+}
+
+model Actor {
+  id          Int      @id @default(autoincrement())
+  tmdbId      Int      @unique @map("tmdb_id")
+  name        String
+  profilePath String?  @map("profile_path")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  characters Character[]
+
+  @@map("actors")
+  @@index([name])
+}
+
+model Character {
+  id       Int @id @default(autoincrement())
+  name     String
+  normalizedName String? @map("normalized_name")
+  canonicalKey   String? @map("canonical_key")
+  movieId  Int @map("movie_id")
+  actorId  Int @map("actor_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  movie Movie @relation(fields: [movieId], references: [id])
+  actor Actor @relation(fields: [actorId], references: [id])
+
+  @@unique([movieId, actorId, name])
+  @@index([actorId, normalizedName])
+  @@map("characters")
+  @@index([name])
+}

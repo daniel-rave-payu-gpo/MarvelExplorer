@@ -1,0 +1,13 @@
+{
+  "watch": [
+    ".env",
+    "src",
+    "package-lock.json",
+    "nodemon.json"
+  ],
+  "ignore": [
+    "test/**"
+  ],
+  "ext": "ts,json,yaml",
+  "exec": "node --inspect --require ts-node/register --require dotenv/config src/index.ts"
+}
